@@ -1,0 +1,12 @@
+{
+  "id": "com.dynag.subtext.glass",
+  "name": "GM Subtext",
+  "version": 1,
+  "abi_version": 256,
+  "provides": {
+    "protocols": [
+      { "id": "gm.subtext", "version": "1.0" },
+      { "id": "gm.device-events", "version": "1.0" }
+    ]
+  }
+}

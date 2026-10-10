@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Subtext</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <h1 id="app-title">Sous-entendus</h1>
+      <p id="subtitle" class="subtitle">Analyse en direct des conversations via les lunettes</p>
+      <div id="status" class="status">Démarrage…</div>
+    </header>
+
+    <section class="card">
+      <div class="listening-row">
+        <span id="listening-badge" class="badge idle">En veille</span>
+        <button id="listen-button" class="primary" type="button">Démarrer l’écoute</button>
+      </div>
+      <p id="consent-note" class="consent">Le voyant d’enregistrement des lunettes s’allume automatiquement pendant l’écoute.</p>
+    </section>
+
+    <section class="card">
+      <h2 id="mode-title">Mode d’analyse</h2>
+      <div class="mode-row">
+        <label class="radio">
+          <input type="radio" name="mode" value="simulated" id="mode-simulated" />
+          <span id="mode-simulated-label">Simulé (sans réseau)</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="mode" value="live" id="mode-live" />
+          <span id="mode-live-label">Live (API LLM)</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="card config" id="config-card">
+      <h2 id="config-title">Configuration LLM</h2>
+      <label class="field">
+        <span id="base-url-label">Endpoint (compatible OpenAI)</span>
+        <input id="base-url" type="url" placeholder="https://api.openai.com/v1" />
+      </label>
+      <label class="field">
+        <span id="api-key-label">Clé API</span>
+        <input id="api-key" type="password" placeholder="sk-…" autocomplete="off" />
+      </label>
+      <div class="grid-2">
+        <label class="field">
+          <span id="stt-model-label">Modèle STT</span>
+          <input id="stt-model" type="text" placeholder="whisper-1" />
+        </label>
+        <label class="field">
+          <span id="llm-model-label">Modèle LLM</span>
+          <input id="llm-model" type="text" placeholder="gpt-4o-mini" />
+        </label>
+      </div>
+      <div class="grid-2">
+        <label class="field">
+          <span id="language-label">Langue</span>
+          <select id="language">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="it">Italiano</option>
+            <option value="de">Deutsch</option>
+            <option value="zh">中文</option>
+          </select>
+        </label>
+        <label class="field">
+          <span id="sensitivity-label">Seuil de sensibilité</span>
+          <input id="sensitivity" type="range" min="0" max="100" step="5" />
+          <output id="sensitivity-value">60</output>
+        </label>
+      </div>
+      <button id="save-button" class="secondary" type="button">Enregistrer</button>
+    </section>
+
+    <section class="card">
+      <h2 id="test-title">Test manuel</h2>
+      <button id="test-button" class="secondary" type="button">Injecter une alerte test</button>
+    </section>
+
+    <section class="card">
+      <h2 id="transcript-title">Dernier extrait entendu</h2>
+      <p id="transcript" class="transcript">—</p>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2 id="alerts-title">Alertes détectées</h2>
+        <button id="clear-button" class="link" type="button">Effacer l’historique</button>
+      </div>
+      <ul id="alerts-list" class="alerts"></ul>
+      <p id="empty-alerts" class="empty">Aucune alerte pour l’instant.</p>
+    </section>
+  </main>
+
+  <script type="module" src="./plugin.js"></script>
+</body>
+</html>
