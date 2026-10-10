@@ -37,6 +37,8 @@ const ui = {
   sensitivityValue: document.querySelector('#sensitivity-value'),
   saveButton: document.querySelector('#save-button'),
   testButton: document.querySelector('#test-button'),
+  testText: document.querySelector('#test-text'),
+  analyzeButton: document.querySelector('#analyze-button'),
   transcript: document.querySelector('#transcript'),
   alertsList: document.querySelector('#alerts-list'),
   emptyAlerts: document.querySelector('#empty-alerts'),
@@ -86,7 +88,9 @@ function applyStrings() {
   document.querySelector('#sensitivity-label').textContent = S.sensitivity;
   document.querySelector('#save-button').textContent = S.save;
   document.querySelector('#test-title').textContent = S.testTitle;
+  document.querySelector('#test-text-label').textContent = S.testTextLabel;
   document.querySelector('#test-button').textContent = S.testButton;
+  document.querySelector('#analyze-button').textContent = S.analyzeButton;
   document.querySelector('#transcript-title').textContent = S.transcriptTitle;
   document.querySelector('#alerts-title').textContent = S.alertsTitle;
   document.querySelector('#clear-button').textContent = S.clear;
@@ -242,6 +246,38 @@ async function analyzeWindow() {
   }
 }
 
+// Analyze a typed transcript directly (no audio, no STT). This is the way to
+// exercise the real LLM in live mode even when no STT endpoint is available.
+async function analyzeTypedText(text) {
+  const value = (text || '').trim();
+  if (!value) return;
+  readConfigFromUi();
+  ui.transcript.textContent = value;
+  if (config.mode === 'live' && (!config.apiKey || !config.baseUrl)) {
+    setStatus(S.needLive, 'error');
+    return;
+  }
+  const active = createPipeline(config, typeof fetch === 'function' ? fetch.bind(globalThis) : undefined);
+  let result;
+  try {
+    result = await active.analyze({ text: value }, { sensitivity: config.sensitivity });
+  } catch (error) {
+    setStatus(`${S.error}: ${error.message || error}`, 'error');
+    return;
+  }
+  if (result && result.has_alert) {
+    await pushAlert({
+      kind: result.kind,
+      confidence: result.confidence,
+      note: result.note,
+      transcript: value,
+    });
+    setStatus(S.sent, 'ready');
+  } else {
+    setStatus(config.mode === 'live' ? S.noAlertLive : S.noAlertSimulated, 'ready');
+  }
+}
+
 function concatBytes(chunks) {
   let total = 0;
   for (const c of chunks) total += c.length;
@@ -350,6 +386,10 @@ ui.testButton.addEventListener('click', async () => {
   ];
   const picked = demos[Math.floor(Math.random() * demos.length)];
   await pushAlert({ ...picked, transcript: '' });
+});
+
+ui.analyzeButton.addEventListener('click', () => {
+  void analyzeTypedText(ui.testText.value);
 });
 
 ui.clearButton.addEventListener('click', async () => {

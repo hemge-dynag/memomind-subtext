@@ -55,6 +55,8 @@ Plugin Web (`.mmpkg`), id `com.dynag.subtext.phone`.
     de transcripts/alertes pour dérouler toute la chaîne hors ligne.
   - `live` : appels HTTP compatibles OpenAI via la permission `network`
     (`/audio/transcriptions` puis `/chat/completions` avec réponse JSON).
+    L'endpoint par défaut est **DeepSeek** (`https://api.deepseek.com/v1`,
+    modèle `deepseek-chat`) ; tout endpoint compatible OpenAI convient.
 - `protocol.js` — trame binaire partagée avec le plugin lunettes.
 - `translations.js` — 6 langues (FR/EN/ES/IT/DE/ZH-CN).
 
@@ -83,12 +85,24 @@ Canaux : `SETTINGS_CHANNEL = 0x5355` ('SU', téléphone→lunettes),
 
 Renseignés dans l'UI du téléphone, persistés via `gm.storage` :
 
-- **Endpoint** compatible OpenAI (ex. `https://api.openai.com/v1`)
+- **Endpoint** compatible OpenAI (défaut `https://api.deepseek.com/v1`)
 - **Clé API**
 - **Modèle STT** (ex. `whisper-1`)
-- **Modèle LLM** (ex. `gpt-4o-mini`)
+- **Modèle LLM** (défaut `deepseek-chat`)
 - **Langue** de la conversation
 - **Seuil de sensibilité** (confiance minimale avant alerte)
+
+### Tester le LLM sans micro
+
+La carte **Test manuel** de l'UI contient un champ texte + le bouton
+**Analyser ce texte** : le texte saisi est envoyé directement au pipeline
+d'analyse (sans STT), ce qui permet de valider le **vrai LLM live** et l'affichage
+de l'alerte sur les lunettes même quand aucun endpoint STT n'est disponible.
+
+> **STT** : DeepSeek n'expose pas d'API audio. Pour l'analyse en direct depuis le
+> micro, il faut un endpoint STT compatible OpenAI (ex. Whisper) — OpenAI,
+> Groq, ou tout serveur compatible. Le mode live utilise alors deux fournisseurs
+> (STT + LLM) ; renseignez l'`endpoint` du STT correspondant.
 
 > Les appels `network` sont limités aux domaines HTTPS requis par la politique
 > du Bridge. Aucune clé n'est codée en dur.

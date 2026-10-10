@@ -57,10 +57,10 @@ export function kindCodeFromName(name) {
 export function defaultConfig() {
   return {
     mode: 'simulated',
-    baseUrl: 'https://api.openai.com/v1',
+    baseUrl: 'https://api.deepseek.com/v1',
     apiKey: '',
     sttModel: 'whisper-1',
-    llmModel: 'gpt-4o-mini',
+    llmModel: 'deepseek-chat',
     language: 'fr',
     sensitivity: 60, // min confidence (0-100) before an alert is pushed
   };
@@ -68,32 +68,45 @@ export function defaultConfig() {
 
 // ---- Simulated pipeline ----------------------------------------------------
 
+// Very small keyword classifier so typed/manual text also produces a plausible
+// alert in offline mode (no network, no key).
+function classifyText(text) {
+  const t = (text || '').toLowerCase();
+  const rules = [
+    { kind: ALERT_COMMITMENT, re: /(n'oublie pas|rappelle|devis|avant (vendredi|lundi|demain)|je t'envoie|commande|deadline|echeance)/ },
+    { kind: ALERT_QUESTION, re: /(\?|budget|combien|pourquoi|est-ce que|tu penses)/ },
+    { kind: ALERT_IMPORTANT, re: /(urgent|important|probleme|retard|trop court|client|erreur)/ },
+    { kind: ALERT_TONE, re: /(super|bravo|genial|parfait|nul|decu|encore une fois)/ },
+    { kind: ALERT_SUBTEXT, re: /(on verra|peut-etre|si tu veux|en reparler|pas sur|mouais)/ },
+  ];
+  for (const rule of rules) {
+    if (rule.re.test(t)) {
+      return { kind: rule.kind, confidence: 62 + Math.floor(Math.random() * 25) };
+    }
+  }
+  return null;
+}
+
 export class SimulatedPipeline {
   constructor() {
     this.turn = 0;
   }
 
-  // audioBytes ignored; emits the next scripted transcript turn.
+  // audio ignored; emits the next scripted transcript turn.
   async transcribe() {
     const entry = SIMULATED_TURNS[this.turn % SIMULATED_TURNS.length];
     this.turn += 1;
-    // small jitter so demos don't look perfectly regular
-    const jitter = Math.round((Math.random() - 0.5) * 10);
-    return {
-      text: entry.text,
-      kind: entry.kind,
-      confidence: Math.max(0, Math.min(100, entry.confidence + jitter)),
-      note: entry.note,
-    };
+    return { text: entry.text };
   }
 
-  async analyze(transcript, prior) {
-    // The simulated transcript already carries its own label.
+  async analyze(transcript, { sensitivity = 60 } = {}) {
+    const cls = classifyText(transcript.text);
+    if (!cls || cls.confidence < sensitivity) return { has_alert: false, transcript: transcript.text };
     return {
-      has_alert: prior.confidence >= 0,
-      kind: prior.kind,
-      confidence: prior.confidence,
-      note: prior.note,
+      has_alert: true,
+      kind: cls.kind,
+      confidence: cls.confidence,
+      note: transcript.text.slice(0, 64),
       transcript: transcript.text,
     };
   }

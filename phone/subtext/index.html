@@ -79,7 +79,14 @@
 
     <section class="card">
       <h2 id="test-title">Test manuel</h2>
-      <button id="test-button" class="secondary" type="button">Injecter une alerte test</button>
+      <label class="field">
+        <span id="test-text-label">Texte à analyser (test du LLM sans micro)</span>
+        <textarea id="test-text" rows="3" placeholder="N’oublie pas de m’envoyer le devis avant vendredi…"></textarea>
+      </label>
+      <div class="test-actions">
+        <button id="analyze-button" class="primary" type="button">Analyser ce texte</button>
+        <button id="test-button" class="secondary" type="button">Injecter une alerte test</button>
+      </div>
     </section>
 
     <section class="card">
