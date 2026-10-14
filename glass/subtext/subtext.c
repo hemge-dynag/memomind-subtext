@@ -37,9 +37,6 @@
 #define ALERT_KIND_COUNT 5U
 
 #define SCREEN_MARGIN 20
-#define BANNER_HEIGHT 96
-#define TITLE_HEIGHT 40
-#define HINT_HEIGHT 40
 
 typedef struct {
     const gm_plugin_host_api_t *host;
@@ -146,7 +143,7 @@ static void refresh_confidence(void)
 {
     int32_t width = (int32_t)subtext.confidence * subtext.track_width / 100;
     if (width < 0) width = 0;
-    subtext.ui->obj_set_size(subtext.confidence_fill, width, 6);
+    subtext.ui->obj_set_size(subtext.confidence_fill, width, 8);
     subtext.ui->obj_align(subtext.confidence_fill, GM_PLUGIN_LVGL_ALIGN_LEFT_MID, 0, 0);
 }
 
@@ -254,6 +251,13 @@ static gm_plugin_result_t subtext_start(void *context)
     gm_plugin_lvgl_obj_t *root;
     char locale[GM_PLUGIN_LOCALE_TAG_MAX];
     int32_t screen_w;
+    int32_t screen_h;
+    int32_t title_h;
+    int32_t hint_h;
+    int32_t banner_top;
+    int32_t banner_h;
+    int32_t banner_w;
+    int32_t note_h;
     (void)context;
 
     subtext.has_alert = false;
@@ -272,6 +276,25 @@ static gm_plugin_result_t subtext_start(void *context)
         return GM_PLUGIN_ESTATE;
 
     screen_w = (int32_t)display.width;
+    screen_h = (int32_t)display.height;
+
+    if (display.height < 200U)
+        return GM_PLUGIN_ESTATE;
+
+    /* Proportional layout: a small title bar on top, a hint bar at the bottom,
+     * and the alert banner filling everything in between so the note text is
+     * large and readable across the whole panel. */
+    title_h = screen_h / 9;
+    if (title_h < 28) title_h = 28;
+    hint_h = screen_h / 12;
+    if (hint_h < 24) hint_h = 24;
+
+    banner_top = 6 + title_h + 8;
+    banner_h = (screen_h - (8 + hint_h + 8)) - banner_top;
+    if (banner_h < 120) banner_h = 120;
+    banner_w = screen_w - SCREEN_MARGIN * 2;
+    note_h = banner_h - 72 - 30;
+    if (note_h < 60) note_h = 60;
 
     root = subtext.ui->root_get();
     if (root == 0) return GM_PLUGIN_ESTATE;
@@ -285,44 +308,45 @@ static gm_plugin_result_t subtext_start(void *context)
 
     subtext.title_label = make_label(subtext.screen, "", 0xD0);
     if (subtext.title_label == 0) goto no_memory;
-    subtext.ui->obj_set_size(subtext.title_label, screen_w - SCREEN_MARGIN * 2, TITLE_HEIGHT);
+    subtext.ui->obj_set_size(subtext.title_label, banner_w, title_h);
     subtext.ui->obj_align(subtext.title_label, GM_PLUGIN_LVGL_ALIGN_TOP_MID, 0, 6);
 
     subtext.banner = subtext.ui->obj_create(subtext.screen);
     if (subtext.banner == 0) goto no_memory;
-    subtext.ui->obj_set_size(subtext.banner, screen_w - SCREEN_MARGIN,
-                             BANNER_HEIGHT);
-    subtext.ui->obj_align(subtext.banner, GM_PLUGIN_LVGL_ALIGN_CENTER, 0, -12);
+    subtext.ui->obj_set_size(subtext.banner, banner_w, banner_h);
+    subtext.ui->obj_align(subtext.banner, GM_PLUGIN_LVGL_ALIGN_TOP_MID, 0, banner_top);
     style_panel(subtext.banner, 0x18, 3, 12);
 
     subtext.kind_label = make_label(subtext.banner, "", 0xE0);
     if (subtext.kind_label == 0) goto no_memory;
     set_style(subtext.kind_label, GM_PLUGIN_LVGL_STYLE_TEXT_FONT,
               (gm_plugin_lvgl_style_value_t){.ptr = subtext.ui->font_large});
-    subtext.ui->obj_set_size(subtext.kind_label, screen_w - SCREEN_MARGIN * 2, 40);
-    subtext.ui->obj_align(subtext.kind_label, GM_PLUGIN_LVGL_ALIGN_TOP_MID, 0, 8);
+    subtext.ui->obj_set_size(subtext.kind_label, banner_w - 24, 48);
+    subtext.ui->obj_align(subtext.kind_label, GM_PLUGIN_LVGL_ALIGN_TOP_MID, 0, 16);
 
     subtext.note_label = make_label(subtext.banner, "", 0xC0);
     if (subtext.note_label == 0) goto no_memory;
-    subtext.ui->label_set_long_mode(subtext.note_label, GM_PLUGIN_LVGL_LABEL_DOT);
-    subtext.ui->obj_set_size(subtext.note_label, screen_w - SCREEN_MARGIN * 2, 28);
-    subtext.ui->obj_align(subtext.note_label, GM_PLUGIN_LVGL_ALIGN_TOP_MID, 0, 48);
+    set_style(subtext.note_label, GM_PLUGIN_LVGL_STYLE_TEXT_FONT,
+              (gm_plugin_lvgl_style_value_t){.ptr = subtext.ui->font_large});
+    subtext.ui->label_set_long_mode(subtext.note_label, GM_PLUGIN_LVGL_LABEL_WRAP);
+    subtext.ui->obj_set_size(subtext.note_label, banner_w - 24, note_h);
+    subtext.ui->obj_align(subtext.note_label, GM_PLUGIN_LVGL_ALIGN_TOP_MID, 0, 72);
 
     subtext.confidence_track = subtext.ui->obj_create(subtext.banner);
     if (subtext.confidence_track == 0) goto no_memory;
-    subtext.track_width = screen_w - SCREEN_MARGIN * 2 - 40;
-    subtext.ui->obj_set_size(subtext.confidence_track, subtext.track_width, 6);
-    subtext.ui->obj_align(subtext.confidence_track, GM_PLUGIN_LVGL_ALIGN_BOTTOM_MID, 0, -8);
+    subtext.track_width = banner_w - 40;
+    subtext.ui->obj_set_size(subtext.confidence_track, subtext.track_width, 8);
+    subtext.ui->obj_align(subtext.confidence_track, GM_PLUGIN_LVGL_ALIGN_BOTTOM_MID, 0, -14);
     style_panel(subtext.confidence_track, 0x30, 0, 3);
 
     subtext.confidence_fill = subtext.ui->obj_create(subtext.confidence_track);
     if (subtext.confidence_fill == 0) goto no_memory;
-    subtext.ui->obj_set_size(subtext.confidence_fill, 0, 6);
+    subtext.ui->obj_set_size(subtext.confidence_fill, 0, 8);
     style_panel(subtext.confidence_fill, 0xE0, 0, 3);
 
     subtext.hint_label = make_label(subtext.screen, "", 0x70);
     if (subtext.hint_label == 0) goto no_memory;
-    subtext.ui->obj_set_size(subtext.hint_label, screen_w - SCREEN_MARGIN * 2, HINT_HEIGHT);
+    subtext.ui->obj_set_size(subtext.hint_label, banner_w, hint_h);
     subtext.ui->obj_align(subtext.hint_label, GM_PLUGIN_LVGL_ALIGN_BOTTOM_MID, 0, -8);
 
     refresh_display();
